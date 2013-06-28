@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+
+#TODO: use the xml file instead of the reporting database
+#TODO: add in the tables from ops
+#TODO: better error reporting
+#TODO: make sure all tables are being reported
+
+#./compare_to_cases_operational.rb /var/www/apps/ncs_navigator_core/current/lib/ncs_navigator/core/warehouse/two_point_one/operational_enumerator.rb
+
+class String
+  def underscore
+    self.gsub(/::/, '/').
+    gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
+    gsub(/([a-z\d])([A-Z])/,'\1_\2').
+    tr("-", "_").
+    downcase
+  end
+end
+
+
+def get_count(table_name, db_name = "-U ncs_navigator_core")
+  `psql #{db_name} -c "select count(*) from #{table_name}"`.split("\n")[2].to_i
+end
+
+def compare_counts(cases_table,wh_table)
+  puts "#{cases_table} - #{wh_table} = #{get_count(cases_table)} - #{get_count(wh_table,'mdes_warehouse_reporting')} = #{get_count(cases_table)-get_count(wh_table,'mdes_warehouse_reporting')}"
+end
+
+# get a map of operational tables to mdes tables from produce_one_for_one calls
+# assumes the "produce_one_for_one(op_table,wh_table" appears on one line
+def get_operational_map(enumerator)
+  `grep 'produce_one_for_one' #{enumerator}`.split("\n")
+    .map{|m| x=m.scan(/:(\w+)/);{x[0][0] => x[1][0]}}
+    .reduce({}) {|xs,x|xs.merge x}
+end
+
+
+
+
+#operational enumerator i.e. three_point_zero/operational_enumerator.rb
+enumerator = ARGV[0]
+
+puts get_operational_map(enumerator).inspect
+
+operational_map = get_operational_map(enumerator)
+# operational_map = {
+#   'people' => 'person',
+# }
+
+operational_map.each do |(cases,warehouse)|
+  compare_counts(cases,warehouse.underscore)
+end
