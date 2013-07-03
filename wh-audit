@@ -2,10 +2,11 @@
 
 #TODO: use the xml file instead of the reporting database
 #TODO: add in the tables from ops
-#TODO: better error reporting
+#TODO: better reporting
 #TODO: make sure all tables are being reported
+#TODO: find all missing records
 
-#./compare_to_cases_operational.rb /var/www/apps/ncs_navigator_core/current/lib/ncs_navigator/core/warehouse/two_point_one/operational_enumerator.rb
+#./wh-audit /var/www/apps/ncs_navigator_core/current/lib/ncs_navigator/core/warehouse/two_point_one/operational_enumerator.rb
 
 class String
   def underscore
@@ -23,7 +24,9 @@ def get_count(table_name, db_name = "-U ncs_navigator_core")
 end
 
 def compare_counts(cases_table,wh_table)
-  puts "#{cases_table} - #{wh_table} = #{get_count(cases_table)} - #{get_count(wh_table,'mdes_warehouse_reporting')} = #{get_count(cases_table)-get_count(wh_table,'mdes_warehouse_reporting')}"
+  cases_c = get_count(cases_table)
+  wh_c    = get_count(wh_table,'mdes_warehouse_reporting')
+  puts "#{cases_table} - #{wh_table} = #{cases_c} - #{wh_c} = #{cases_c-wh_c}; #{(cases_c-wh_c).to_f/cases_c}"
 end
 
 # get a map of operational tables to mdes tables from produce_one_for_one calls
@@ -33,7 +36,6 @@ def get_operational_map(enumerator)
     .map{|m| x=m.scan(/:(\w+)/);{x[0][0] => x[1][0]}}
     .reduce({}) {|xs,x|xs.merge x}
 end
-
 
 
 
